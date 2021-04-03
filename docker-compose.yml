@@ -1,0 +1,56 @@
+version: "3.7"
+services:
+  frontend:
+    container_name: react
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    # command: /bin/sh -c "npm run build"
+    tty: true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - ./frontend/build:/app/build
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    tty: true
+    command: /bin/sh -c "python3 api.py"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app:rw
+      - ./images:/var/images:rw
+    environment:
+      FLASK_APP: api.py
+      FLASK_ENV: production
+      FLASK_DEBUG: "False"
+      IMG_SAVE_PATH: /var/images
+      LOG_PATH: /var/log
+      MONGO_DB: bgai
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+    depends_on:
+      - mongo
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:rw
+      - ./frontend/build:/usr/share/nginx/frontend:rw
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    expose:
+      - 27017
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongodata:/data/db
